@@ -1,5 +1,5 @@
 import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.3/command/mod.ts";
-import { loadSwc, transform } from "./minifier/swc.ts";
+import { loadSwc, transform } from "~/minifier/swc.ts";
 import type { Config } from "https://esm.sh/v135/@swc/types@0.1.6";
 
 await new Command()
