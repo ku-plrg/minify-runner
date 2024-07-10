@@ -4,9 +4,13 @@ import type { Config } from "https://esm.sh/v135/@swc/types@0.1.6";
 
 await new Command()
   .name("minify-runner")
-  .arguments("<name@semver:string> <code:string>")
-  .action(async (_, nameWithSemver, code) => {
-    const [name, semver] = nameWithSemver.split("@");
+  .option("-v, --version <name@semver:string>", "minifier name with semver", {
+    default: "swc@1.6.7",
+  })
+  .option("-f, --file", "Code is given by filename instead of string")
+  .arguments("<codeOrFilePath:string>")
+  .action(async ({ version, file }, codeOrFilePath) => {
+    const [name, semver] = version.split("@");
     switch (name) {
       case "swc":
         const swcModule = await loadSwc(semver);
@@ -14,7 +18,7 @@ await new Command()
           await Deno.readTextFile(new URL(".swcrc", import.meta.url)),
         ) as Config;
         const { code: output } = transform({
-          code,
+          code: file ? await Deno.readTextFile(codeOrFilePath) : codeOrFilePath,
           config,
           filename: "tmp.js",
           swc: swcModule,

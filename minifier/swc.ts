@@ -3,10 +3,11 @@ import { ensureDir } from "https://deno.land/std@0.220.1/fs/ensure_dir.ts";
 import { exists } from "https://deno.land/std@0.220.1/fs/exists.ts";
 import {
   greaterOrEqual,
+  greaterThan,
   lessOrEqual,
+  lessThan,
   parse,
 } from "https://deno.land/std@0.220.1/semver/mod.ts";
-import { relative } from "https://deno.land/std@0.220.1/path/relative.ts";
 import type {
   Config,
   Options,
@@ -30,10 +31,6 @@ export function getPackageName(version: string) {
 }
 
 export async function loadSwc(version: string): Promise<SwcModule> {
-  const packageName = getPackageName(version);
-  const entryFileName = greaterOrEqual(parse(version), parse("1.2.165"))
-    ? "wasm-web.js"
-    : "wasm.js";
   return getCachedModule(version);
 }
 
@@ -48,16 +45,17 @@ export function transform({ code, config, filename, swc }: {
 
 async function getCachedModule(version: string) {
   const packageName = getPackageName(version);
-  const entryFileName = greaterOrEqual(parse(version), parse("1.2.165"))
-    ? "wasm-web.js"
-    : "wasm.js";
+  const entryFileName = greaterThan(parse(version), parse("1.2.165")) &&
+      lessThan(parse(version), parse("1.6.7"))
+    ? "wasm-web"
+    : "wasm";
   const cacheDir = `${getCacheDir()}/swc/${version}`;
-  const loaderCachePath = path.join(cacheDir, entryFileName);
-  const wasmCachePath = path.join(cacheDir, "wasm-web_bg.wasm");
+  const loaderCachePath = path.join(cacheDir, `${entryFileName}.js`);
+  const wasmCachePath = path.join(cacheDir, `${entryFileName}_bg.wasm`);
   const loaderPath = new URL(
-    `https://cdn.jsdelivr.net/npm/${packageName}@${version}/${entryFileName}`,
+    `https://cdn.jsdelivr.net/npm/${packageName}@${version}/${entryFileName}.js`,
   );
-  const wasmPath = new URL("wasm-web_bg.wasm", loaderPath);
+  const wasmPath = new URL(`${entryFileName}_bg.wasm`, loaderPath);
   if (!(await exists(wasmCachePath) && await exists(loaderCachePath))) {
     await ensureDir(cacheDir);
     await Promise.all([
