@@ -1,6 +1,6 @@
 import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.3/command/mod.ts";
 import { loadSwc, transform } from "~/minifier/swc.ts";
-import { loadTerserMinifier, transformTerser } from "~/minifier/terser.ts";
+import { loadTerser, transformTerser } from "~/minifier/terser.ts";
 import type { Config } from "https://esm.sh/v135/@swc/types@0.1.6";
 
 await new Command()
@@ -27,14 +27,14 @@ await new Command()
         console.log(output.trim());
         return;
       case "terser":
-        const minifier = await loadTerserMinifier(semver);
+        const minifier = await loadTerser(semver);
         const configTerser = JSON.parse(
           await Deno.readTextFile(new URL(".terserrc", import.meta.url)),
         );
         const outputTerser = await transformTerser({
-          code: code,
+          code,
           config: configTerser,
-          minifier: minifier,
+          minifier,
         });
         console.log(outputTerser.trim());
         return;
