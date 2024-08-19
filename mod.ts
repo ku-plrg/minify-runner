@@ -1,6 +1,9 @@
 import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.3/command/mod.ts";
-import { loadSwc, transform } from "~/minifier/swc.ts";
-import { loadTerser, transformTerser } from "~/minifier/terser.ts";
+import { load as loadSwc, transform as transformSwc } from "~/minifier/swc.ts";
+import {
+  load as loadTerser,
+  transform as transformTerser,
+} from "~/minifier/terser.ts";
 import type { Config } from "https://esm.sh/v135/@swc/types@0.1.6";
 
 await new Command()
@@ -12,32 +15,37 @@ await new Command()
   .arguments("<codeOrFilePath:string>")
   .action(async ({ version, file }, codeOrFilePath) => {
     const [name, semver] = version.split("@");
+    const code = file
+      ? await Deno.readTextFile(codeOrFilePath)
+      : codeOrFilePath;
     switch (name) {
-      case "swc":
-        const swcModule = await loadSwc(semver);
+      case "swc": {
+        const swc = await loadSwc(semver);
         const config = JSON.parse(
           await Deno.readTextFile(new URL(".swcrc", import.meta.url)),
         ) as Config;
-        const { code: output } = transform({
-          code: file ? await Deno.readTextFile(codeOrFilePath) : codeOrFilePath,
+        const { code: output } = transformSwc({
+          code,
           config,
           filename: "tmp.js",
-          swc: swcModule,
+          swc,
         });
         console.log(output.trim());
         return;
-      case "terser":
-        const minifier = await loadTerser(semver);
-        const configTerser = JSON.parse(
+      }
+      case "terser": {
+        const terser = await loadTerser(semver);
+        const config = JSON.parse(
           await Deno.readTextFile(new URL(".terserrc", import.meta.url)),
         );
-        const outputTerser = await transformTerser({
+        const output = await transformTerser({
           code,
-          config: configTerser,
-          minifier,
+          config,
+          terser,
         });
-        console.log(outputTerser.trim());
+        console.log(output.trim());
         return;
+      }
       default:
         throw "invalid minifier name";
     }
