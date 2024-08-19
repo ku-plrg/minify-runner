@@ -30,7 +30,7 @@ export function getPackageName(version: string) {
     : "@swc/wasm-web";
 }
 
-export async function loadSwc(version: string): Promise<SwcModule> {
+export async function load(version: string): Promise<SwcModule> {
   return getCachedModule(version);
 }
 
