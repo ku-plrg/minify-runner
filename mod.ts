@@ -1,4 +1,4 @@
-import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.3/command/mod.ts";
+import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.4/command/mod.ts";
 import { load as loadSwc, transform as transformSwc } from "~/minifier/swc.ts";
 import {
   load as loadTerser,

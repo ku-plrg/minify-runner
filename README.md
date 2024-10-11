@@ -8,5 +8,5 @@
 - if not set, minify-runner creates new cache directory. check `misc/cache.ts`.
 
 ```sh
-deno install -n minify-runner -A ./mod.ts --import-map ./deno.json
+deno install --global -n minify-runner -A ./mod.ts --import-map ./deno.json
 ```
