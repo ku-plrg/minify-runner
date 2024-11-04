@@ -2,5 +2,11 @@
     "ecmaVersion": 2024,
     "sourceType": "script",
     "locations": false,
-    "ranges": false
+    "ranges": false,
+    "allowReserved": true,
+    "allowReturnOutsideFunction": true,
+    "allowImportExportEverywhere": true,
+    "allowAwaitOutsideFunction": true,
+    "allowSuperOutsideMethod": true,
+    "allowHashBang": true
 }
