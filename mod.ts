@@ -27,13 +27,6 @@ await new Command()
       default: false,
     },
   )
-  .option(
-    "-e, --ecma-version <ecmaVersion:ecmaVersionType>",
-    "ECMA version in Acorn AST parser",
-    {
-      default: 2024,
-    },
-  )
   .arguments("<codeOrFilePath:string>")
   .action(
     async (
@@ -64,6 +57,7 @@ await new Command()
                 new URL(".acornrc", import.meta.url),
               ),
             );
+            console.log("======================================");
             console.log(await minifyCheck(code, output, config));
           }
           break;
@@ -85,6 +79,7 @@ await new Command()
                 new URL(".acornrc", import.meta.url),
               ),
             );
+            console.log("======================================");
             console.log(await minifyCheck(code, output, config));
           }
           break;

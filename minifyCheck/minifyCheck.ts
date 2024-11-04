@@ -13,19 +13,8 @@ export async function minifyCheck(
     minified: string,
     config: Options,
 ): Promise<boolean> {
-    /**
-     * for debug
-     */
-
-    original = "const a = 1; console.log(a);";
-    minified = "const b = 1; console.log(b+b)";
-
     const originalAst = await parseArcon(original, config);
     const minifiedAst = await parseArcon(minified, config);
-
-    console.log(JSON.stringify(originalAst, null, 2));
-    console.log("==========================================");
-    console.log(JSON.stringify(minifiedAst, null, 2));
 
     return compareASTsByType(originalAst, minifiedAst);
 }
@@ -58,6 +47,10 @@ function compareASTsByType(ast1: any, ast2: any): boolean {
         }
         return false;
     } else if (
+        ast1 && ast2 && typeof ast1 === "string" && typeof ast2 === "string"
+    ) {
+        return ast1 !== ast2;
+    } else if (
         ast1 && typeof ast1 === "object" && ast2 && typeof ast2 === "object"
     ) {
         if (ast1.type !== ast2.type) {
@@ -82,9 +75,9 @@ function compareASTsByType(ast1: any, ast2: any): boolean {
             if (compareASTsByType(ast1[key], ast2[key])) return true;
         }
         return false;
+    } else {
+        return ast1.type !== ast2.type;
     }
-
-    return ast1.type !== ast2.type;
 }
 
 function isLexicalNode(node: any): boolean {
