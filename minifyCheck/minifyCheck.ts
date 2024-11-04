@@ -76,10 +76,10 @@ function compareASTsByType(ast1: any, ast2: any): boolean {
         }
         return false;
     } else {
-        return ast1.type !== ast2.type;
+        return ast1 && ast2 && ast1.type !== ast2.type;
     }
 }
 
 function isLexicalNode(node: any): boolean {
-    return ignoringTypes.includes(node.type);
+    return node && ignoringTypes.includes(node.type);
 }
