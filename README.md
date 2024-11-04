@@ -22,6 +22,8 @@ The `minify-runner` command provides the following options and arguments:
 
 - `-v, --version <name@semver:string>`: Specifies the minifier name along with its version in the format `name@semver`. The default value is `swc@1.6.7`.
 - `-f, --file`: Indicates that the code is provided by filename instead of a string.
+- `-d, --diff`: This option enables the AST diff checker, which is used to determine if the minifier triggered any changes.
+    - Note: This option is still a work in progress and not fully implemented yet.
 
 ### Arguments
 
@@ -43,4 +45,8 @@ minify-runner -v swc@1.7.0 "const x = 1; console.log(x)"
 #### Use File Path
 ```sh
 minify-runner -v swc@1.7.0 -f tmp.js
+```
+#### Using diff option
+```sh
+minify-runner -v swc@1.7.0 -d "console.log(1+1);"
 ```
