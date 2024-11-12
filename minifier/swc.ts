@@ -17,7 +17,7 @@ import type {
 } from "https://esm.sh/@swc/types@0.1.6";
 import { getCacheDir } from "~/misc/cache.ts";
 
-interface SwcModule {
+export interface SwcModule {
   default(): Promise<unknown>;
   parseSync(code: string, options: ParseOptions & { isModule: false }): Script;
   transformSync(code: string, options: Options): Output;
