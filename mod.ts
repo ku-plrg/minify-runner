@@ -7,6 +7,7 @@ import {
 import type { Config } from "https://esm.sh/v135/@swc/types@0.1.6";
 
 import { minifyCheck } from "~/minifyCheck/minifyCheck.ts";
+import { findTriggeredOptionsCommand } from "~/minifyCheck/findTriggeredOption.ts";
 
 interface MinifierOptions {
   version: string; // semver
@@ -17,7 +18,7 @@ interface MinifierOptions {
 await new Command()
   .name("minify-runner")
   .option("-v, --version <name@semver:string>", "minifier name with semver", {
-    default: "swc@1.6.7",
+    default: "swc@1.4.6",
   })
   .option("-f, --file", "Code is given by filename instead of string")
   .option(
@@ -89,4 +90,5 @@ await new Command()
       }
     },
   )
+  .command("find-triggered-options", findTriggeredOptionsCommand)
   .parse(Deno.args);
