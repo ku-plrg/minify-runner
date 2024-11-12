@@ -11,8 +11,9 @@ export async function deltaDebugOptionSwc(
     config: any,
     swc: SwcModule,
     cliOption: any,
-): Promise<string[]> {
+): Promise<any> {
     const triggeredOptions: string[] = [];
+    const triggeredOptionsBruteForce: string[][] = [];
     const originalOutputTrimmed = transformSwc({
         code,
         config,
@@ -20,39 +21,68 @@ export async function deltaDebugOptionSwc(
         swc,
     }).code.trim();
 
-    const compressConfigKeys = Object.keys(config.jsc?.minify?.compress ?? {});
+    const compressConfigKeys = Object.keys(config.jsc?.minify?.compress ?? {})
+        .filter((key) => typeof config.jsc.minify.compress[key] === "boolean");
 
-    for (const key of compressConfigKeys) {
-        if (typeof config.jsc.minify.compress[key] !== "boolean") {
-            continue;
-        }
+    const originalConfig = { ...config.jsc.minify.compress };
 
-        if (key.startsWith("unsafe") && !cliOption.unsafe) {
-            continue;
-        }
+    if (cliOption["brute-force"]) {
+        const compressConfigKeysLength = compressConfigKeys.length;
 
-        const originalConfigValue = config.jsc.minify.compress[key];
-
-        config.jsc.minify.compress[key] = !originalConfigValue;
-
-        try {
-            const newOutputTrimmed = transformSwc({
-                code,
-                config,
-                filename: "tmp.js",
-                swc,
-            }).code.trim();
-            if (originalOutputTrimmed !== newOutputTrimmed) {
-                triggeredOptions.push(key);
+        for (let i = 0; i < 2 << compressConfigKeysLength; i++) {
+            for (let j = 0; j < compressConfigKeysLength; j++) {
+                const key = compressConfigKeys[j];
+                config.jsc.minify.compress[key] = Boolean(i & (1 << j));
             }
-        } catch (e) {
-            continue;
+
+            try {
+                const newOutputTrimmed = transformSwc({
+                    code,
+                    config,
+                    filename: "tmp.js",
+                    swc,
+                }).code.trim();
+                if (originalOutputTrimmed !== newOutputTrimmed) {
+                    triggeredOptionsBruteForce.push(
+                        compressConfigKeys.filter((key) =>
+                            originalConfig[key] !==
+                                config.jsc.minify.compress[key]
+                        ),
+                    );
+                }
+            } catch (e) {
+                console.log("pass due to unexpected error");
+            }
         }
+
+        return triggeredOptionsBruteForce;
+    } else {
+        for (const key of compressConfigKeys) {
+            if (key.startsWith("unsafe") && !cliOption.unsafe) {
+                continue;
+            }
+
+            const originalConfigValue = config.jsc.minify.compress[key];
+
+            config.jsc.minify.compress[key] = !originalConfigValue;
+
+            try {
+                const newOutputTrimmed = transformSwc({
+                    code,
+                    config,
+                    filename: "tmp.js",
+                    swc,
+                }).code.trim();
+                if (originalOutputTrimmed !== newOutputTrimmed) {
+                    triggeredOptions.push(key);
+                }
+            } finally {
+                config.jsc.minify.compress[key] = originalConfigValue;
+            }
+        }
+
+        return triggeredOptions;
     }
-
-    console.log(triggeredOptions);
-
-    return triggeredOptions;
 }
 
 export const findTriggeredOptionsCommand = new Command()
@@ -66,10 +96,17 @@ export const findTriggeredOptionsCommand = new Command()
     .option("-u, --unsafe", "Enable checking unsafe options", {
         default: false,
     })
+    .option("-b, --bruteforce", "Enable brute-force mode", {
+        default: false,
+    })
     .arguments("<paths...:string>")
     .action(
         async (
-            options: { output: string; unsafe: boolean },
+            options: {
+                output: string;
+                unsafe: boolean;
+                bruteforce: boolean;
+            },
             ...paths: string[]
         ) => {
             console.log("Finding triggered options...");
@@ -88,7 +125,10 @@ export const findTriggeredOptionsCommand = new Command()
                     code,
                     config,
                     swc,
-                    { "unsafe": options.unsafe },
+                    {
+                        "unsafe": options.unsafe,
+                        "brute-force": options.bruteforce,
+                    },
                 );
                 summary[file] = triggeredOptions;
             }
