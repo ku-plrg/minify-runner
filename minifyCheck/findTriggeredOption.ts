@@ -122,16 +122,37 @@ export const findTriggeredOptionsCommand = new Command()
             ...paths: string[]
         ) => {
             console.log("Finding triggered options...");
-            const files = await collectJavaScriptFiles(paths);
+            const files = [];
+            for await (const file of collectJavaScriptFiles(paths)) {
+                files.push(file);
+            }
             console.log(`Found ${files.length} JavaScript files`);
             const swc = await loadSwc("1.4.6");
             const config = JSON.parse(
                 await Deno.readTextFile(new URL("../.swcrc", import.meta.url)),
             ) as Config;
-            const summary: Record<string, string[]> = {};
 
-            for (const file of files) {
+            // 출력 파일을 쓰기 스트림으로 열기
+            const outputFile = await Deno.open(options.output, {
+                write: true,
+                create: true,
+                truncate: true,
+            });
+
+            // JSON 배열의 시작 부분 쓰기
+            await outputFile.write(new TextEncoder().encode("{\n"));
+
+            let isFirst = true;
+            let checkedFiles = 0;
+            const batchSize = 100; // 한 번에 처리할 파일 수
+            let batchResults = [];
+
+            for await (const file of collectJavaScriptFiles(paths)) {
+                checkedFiles++;
                 console.log(`Checking ${file}`);
+                if (checkedFiles % 1000 === 0) {
+                    console.log(`Checked ${checkedFiles} files`);
+                }
                 const code = await Deno.readTextFile(file);
                 const triggeredOptions = await deltaDebugOptionSwc(
                     code,
@@ -142,33 +163,69 @@ export const findTriggeredOptionsCommand = new Command()
                         "brute-force": options.bruteforce,
                     },
                 );
-                summary[file] = triggeredOptions;
+
+                // JSON 형태로 결과를 문자열로 변환
+                const summaryEntry = JSON.stringify(triggeredOptions, null, 2);
+
+                // 결과를 배치에 추가
+                batchResults.push(`  "${file}": ${summaryEntry}`);
+
+                // 배치 크기만큼 처리했으면 출력 파일에 기록
+                if (batchResults.length >= batchSize) {
+                    if (!isFirst) {
+                        await outputFile.write(new TextEncoder().encode(",\n"));
+                    } else {
+                        isFirst = false;
+                    }
+                    await outputFile.write(
+                        new TextEncoder().encode(batchResults.join(",\n")),
+                    );
+                    batchResults = [];
+                }
             }
 
-            await Deno.writeTextFile(
-                options.output,
-                JSON.stringify(summary, null, 2),
-            );
+            // 남은 결과 기록
+            if (batchResults.length > 0) {
+                if (!isFirst) {
+                    await outputFile.write(new TextEncoder().encode(",\n"));
+                }
+                await outputFile.write(
+                    new TextEncoder().encode(batchResults.join(",\n")),
+                );
+            }
+
+            // JSON 객체의 끝 부분 쓰기
+            await outputFile.write(new TextEncoder().encode("\n}\n"));
+
+            // 출력 파일 닫기
+            outputFile.close();
+
             console.log(`Summary saved to ${options.output}`);
         },
     );
 
-async function collectJavaScriptFiles(paths: string[]): Promise<string[]> {
-    const files: string[] = [];
+async function* collectJavaScriptFiles(
+    paths: string[],
+    visited = new Set<string>(),
+): AsyncGenerator<string> {
     for (const path of paths) {
+        if (visited.has(path)) {
+            continue; // Skip already visited paths to avoid infinite recursion
+        }
+        visited.add(path);
+
         const stat = await Deno.stat(path);
         if (stat.isFile && path.endsWith(".js")) {
-            files.push(path);
+            yield path;
         } else if (stat.isDirectory) {
             for await (const entry of Deno.readDir(path)) {
                 const entryPath = `${path}/${entry.name}`;
                 if (entry.isFile && entry.name.endsWith(".js")) {
-                    files.push(entryPath);
+                    yield entryPath;
                 } else if (entry.isDirectory) {
-                    paths.push(entryPath);
+                    yield* collectJavaScriptFiles([entryPath], visited);
                 }
             }
         }
     }
-    return files;
 }
