@@ -14,12 +14,22 @@ export async function deltaDebugOptionSwc(
 ): Promise<any> {
     const triggeredOptions: string[] = [];
     const triggeredOptionsBruteForce: string[][] = [];
-    const originalOutputTrimmed = transformSwc({
-        code,
-        config,
-        filename: "tmp.js",
-        swc,
-    }).code.trim();
+
+    let originalOutputTrimmed: string;
+
+    try {
+        originalOutputTrimmed = transformSwc({
+            code,
+            config,
+            filename: "tmp.js",
+            swc,
+        }).code.trim();
+    } catch (err) {
+        console.log(
+            `pass checking original output due to unexpected error: ${err}`,
+        );
+        return [];
+    }
 
     const compressConfigKeys = Object.keys(config.jsc?.minify?.compress ?? {})
         .filter((key) => typeof config.jsc.minify.compress[key] === "boolean");
@@ -50,8 +60,8 @@ export async function deltaDebugOptionSwc(
                         ),
                     );
                 }
-            } catch (e) {
-                console.log("pass due to unexpected error");
+            } catch (err) {
+                console.log(`pass due to unexpected error: ${err}`);
             }
         }
 
@@ -76,6 +86,8 @@ export async function deltaDebugOptionSwc(
                 if (originalOutputTrimmed !== newOutputTrimmed) {
                     triggeredOptions.push(key);
                 }
+            } catch (err) {
+                console.log(`pass due to unexpected error: ${err}`);
             } finally {
                 config.jsc.minify.compress[key] = originalConfigValue;
             }
