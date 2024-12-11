@@ -24,7 +24,7 @@ async function fetchAndCache(url: string, cachePath: string) {
   return content;
 }
 
-async function rewriteAbsolutePaths(filePath: string, cacheDir: string) {
+async function rewriteAbsolutePaths(filePath: string) {
   let content = await Deno.readTextFile(filePath);
 
   // Replace absolute URLs like "/npm/<module>" with local relative paths
@@ -81,7 +81,7 @@ async function getCachedModule(version: string): Promise<TerserModule> {
     }
 
     // Rewrite absolute paths in the main file to relative paths
-    await rewriteAbsolutePaths(loaderCachePath, cacheDir);
+    await rewriteAbsolutePaths(loaderCachePath);
   }
 
   // Dynamically import the cached Terser module

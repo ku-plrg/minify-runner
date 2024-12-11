@@ -4,6 +4,10 @@ import {
   load as loadTerser,
   transform as transformTerser,
 } from "~/minifier/terser.ts";
+import {
+  load as loadBabel,
+  transform as transformBabel,
+} from "~/minifier/babel.ts";
 import type { Config } from "https://esm.sh/v135/@swc/types@0.1.6";
 
 import { minifyCheck } from "~/minifyCheck/minifyCheck.ts";
@@ -72,6 +76,29 @@ await new Command()
             code,
             config,
             terser,
+          });
+          console.log(output.trim());
+          if (diff) {
+            const config = JSON.parse(
+              await Deno.readTextFile(
+                new URL(".acornrc", import.meta.url),
+              ),
+            );
+            console.log("======================================");
+            console.log(await minifyCheck(code, output, config));
+          }
+          break;
+        }
+        case "babel": {
+          const babel = await loadBabel(semver);
+          const config = JSON.parse(
+            await Deno.readTextFile(new URL(".babelrc", import.meta.url)),
+          );
+          console.log("======================================");
+          const output = await transformBabel({
+            code,
+            config,
+            babel,
           });
           console.log(output.trim());
           if (diff) {
