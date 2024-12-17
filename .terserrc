@@ -1,5 +1,7 @@
 {
   "module": true,
-  "compress": true,
+  "compress": {
+    "unused": false
+  },
   "mangle": false
 }
