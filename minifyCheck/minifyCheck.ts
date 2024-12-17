@@ -13,6 +13,18 @@ export async function minifyCheck(
     minified: string,
     config: Options,
 ): Promise<boolean> {
+    // if original starts with "use strict", minified should also start with "use strict": if not, add "use strict" to minified
+    if (
+        (
+            original.trim().startsWith('"use strict"') ||
+            original.trim().startsWith("'use strict'")
+        ) &&
+        !(minified.trim().startsWith('"use strict"') ||
+            minified.trim().startsWith("'use strict'"))
+    ) {
+        minified = '"use strict";\n' + minified;
+    }
+
     const originalAst = await parseArcon(original, config);
     const minifiedAst = await parseArcon(minified, config);
 
