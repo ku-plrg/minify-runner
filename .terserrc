@@ -1,8 +1,5 @@
 {
   "module": true,
-  "compress": {},
-  "mangle": {},
-  "output": {},
-  "parse": {},
-  "rename": {}
+  "compress": true,
+  "mangle": false
 }
