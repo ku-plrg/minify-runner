@@ -94,7 +94,6 @@ await new Command()
           const config = JSON.parse(
             await Deno.readTextFile(new URL(".babelrc", import.meta.url)),
           );
-          console.log("======================================");
           const output = await transformBabel({
             code,
             config,
