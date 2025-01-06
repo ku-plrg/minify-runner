@@ -8,7 +8,7 @@ import {
   load as loadBabel,
   transform as transformBabel,
 } from "~/minifier/babel.ts";
-import type { Config, JscTarget } from "https://esm.sh/v135/@swc/types@0.1.6";
+import type { Config } from "https://esm.sh/v135/@swc/types@0.1.6";
 
 import { minifyCheck } from "~/minifyCheck/minifyCheck.ts";
 import { findTriggeredOptionsCommand } from "~/minifyCheck/findTriggeredOption.ts";
