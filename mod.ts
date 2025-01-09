@@ -56,6 +56,10 @@ await new Command()
       default: null, // if null, it follows the default .swcrc files
     },
   )
+  .option("-n, --notcompress", "Do not compress the code", {
+    // note that notcompress is temporarily implemented only for swc
+    default: false, // false is compress
+  })
   .arguments("<codeOrFilePath:string>")
   .action(
     async (
@@ -87,6 +91,10 @@ await new Command()
                 }`,
               );
             }
+          }
+          if (options.notcompress) {
+            config.jsc ??= {};
+            config.jsc.minify = {};
           }
           const { code: output } = transformSwc({
             code,
