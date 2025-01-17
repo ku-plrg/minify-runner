@@ -1,3 +1,4 @@
+import { serve } from "https://deno.land/std/http/server.ts";
 import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.4/command/mod.ts";
 import { load as loadSwc, transform as transformSwc } from "~/minifier/swc.ts";
 import {
@@ -13,14 +14,7 @@ import type { Config } from "https://esm.sh/v135/@swc/types@0.1.6";
 import { minifyCheck } from "~/minifyCheck/minifyCheck.ts";
 import { findTriggeredOptionsCommand } from "~/minifyCheck/findTriggeredOption.ts";
 
-interface MinifierOptions {
-  version: string; // semver
-  file?: boolean;
-  diff: boolean;
-}
-
-// valid target values for swc
-// todo: refactor to get dynamically
+// Valid target values for SWC
 const validJscTargetSwc: String[] = [
   "es3",
   "es5",
@@ -35,133 +29,119 @@ const validJscTargetSwc: String[] = [
   "esnext",
 ];
 
-await new Command()
-  .name("minify-runner")
-  .option("-v, --version <name@semver:string>", "minifier name with semver", {
-    default: "swc@1.4.6",
-  })
-  .option("-f, --file", "Code is given by filename instead of string")
-  .option(
-    "-d, --diff",
-    "Show difference between original and minified code",
-    {
-      default: false,
-    },
-  )
-  .option(
-    // note that target is temporarily implemented only for swc
-    "-t, --target <target:string>",
-    "target ES version",
-    {
-      default: null, // if null, it follows the default .swcrc files
-    },
-  )
-  .option("-n, --notcompress", "Do not compress the code", {
-    // note that notcompress is temporarily implemented only for swc
-    default: false, // false is compress
-  })
-  .arguments("<codeOrFilePath:string>")
-  .action(
-    async (
-      options: Record<string, any>, // to be refactored
-      codeOrFilePath: string,
-    ) => {
-      const { version, file, diff } = options as MinifierOptions; // to be refactored
-      const [name, semver] = version.split("@");
-      const code = file
-        ? await Deno.readTextFile(codeOrFilePath)
-        : codeOrFilePath;
-      switch (name) {
-        case "swc": {
-          const swc = await loadSwc(semver);
-          const config: Config = JSON.parse(
-            await Deno.readTextFile(new URL(".swcrc", import.meta.url)),
-          ) as Config;
-          if (options.target) {
-            const target = options.target.toLowerCase().trim();
-            if (validJscTargetSwc.includes(target)) {
-              config.jsc ??= {};
-              config.jsc.target = target;
-            } else {
-              throw new Error(
-                `Invalid target value. Valid values are ${
-                  validJscTargetSwc.join(
-                    ", ",
-                  )
-                }`,
-              );
-            }
-          }
-          if (options.notcompress) {
-            config.jsc ??= {};
-            config.jsc.minify = {};
-          }
-          const { code: output } = transformSwc({
-            code,
-            config,
-            filename: "tmp.js",
-            swc,
-          });
-          console.log(output.trim());
-          if (diff) {
-            const config = JSON.parse(
-              await Deno.readTextFile(
-                new URL(".acornrc", import.meta.url),
-              ),
-            );
-            console.log("======================================");
-            console.log(await minifyCheck(code, output, config));
-          }
-          break;
-        }
-        case "terser": {
-          const terser = await loadTerser(semver);
-          const config = JSON.parse(
-            await Deno.readTextFile(new URL(".terserrc", import.meta.url)),
+// Helper function to process the command logic
+async function processCommand(
+  options: Record<string, any>,
+  codeOrFilePath: string,
+): Promise<string> {
+  const { version, file, diff } = options;
+  const [name, semver] = version.split("@");
+  const code = file ? await Deno.readTextFile(codeOrFilePath) : codeOrFilePath;
+
+  switch (name) {
+    case "swc": {
+      const swc = await loadSwc(semver);
+      const config: Config = JSON.parse(
+        await Deno.readTextFile(new URL(".swcrc", import.meta.url)),
+      ) as Config;
+      if (options.target) {
+        const target = options.target.toLowerCase().trim();
+        if (validJscTargetSwc.includes(target)) {
+          config.jsc ??= {};
+          config.jsc.target = target;
+        } else {
+          throw new Error(
+            `Invalid target value. Valid values are ${
+              validJscTargetSwc.join(", ")
+            }`,
           );
-          const output = await transformTerser({
-            code,
-            config,
-            terser,
-          });
-          console.log(output.trim());
-          if (diff) {
-            const config = JSON.parse(
-              await Deno.readTextFile(
-                new URL(".acornrc", import.meta.url),
-              ),
-            );
-            console.log("======================================");
-            console.log(await minifyCheck(code, output, config));
-          }
-          break;
         }
-        case "babel": {
-          const babel = await loadBabel(semver);
-          const config = JSON.parse(
-            await Deno.readTextFile(new URL(".babelrc", import.meta.url)),
-          );
-          const output = await transformBabel({
-            code,
-            config,
-            babel,
-          });
-          console.log(output.trim());
-          if (diff) {
-            const config = JSON.parse(
-              await Deno.readTextFile(
-                new URL(".acornrc", import.meta.url),
-              ),
-            );
-            console.log("======================================");
-            console.log(await minifyCheck(code, output, config));
-          }
-          break;
-        }
-        default:
-          throw "invalid minifier name";
       }
-    },
-  )
-  .command("find-triggered-options", findTriggeredOptionsCommand)
-  .parse(Deno.args);
+      if (options.notcompress) {
+        config.jsc ??= {};
+        config.jsc.minify = {};
+      }
+      const { code: output } = transformSwc({
+        code,
+        config,
+        filename: "tmp.js",
+        swc,
+      });
+      if (diff) {
+        const diffConfig = JSON.parse(
+          await Deno.readTextFile(new URL(".acornrc", import.meta.url)),
+        );
+        const diffResult = await minifyCheck(code, output, diffConfig);
+        return `${output.trim()}\n======================================\n${diffResult}`;
+      }
+      return output.trim();
+    }
+    case "terser": {
+      const terser = await loadTerser(semver);
+      const config = JSON.parse(
+        await Deno.readTextFile(new URL(".terserrc", import.meta.url)),
+      );
+      const output = await transformTerser({
+        code,
+        config,
+        terser,
+      });
+      if (diff) {
+        const diffConfig = JSON.parse(
+          await Deno.readTextFile(new URL(".acornrc", import.meta.url)),
+        );
+        const diffResult = await minifyCheck(code, output, diffConfig);
+        return `${output.trim()}\n======================================\n${diffResult}`;
+      }
+      return output.trim();
+    }
+    case "babel": {
+      const babel = await loadBabel(semver);
+      const config = JSON.parse(
+        await Deno.readTextFile(new URL(".babelrc", import.meta.url)),
+      );
+      const output = await transformBabel({
+        code,
+        config,
+        babel,
+      });
+      if (diff) {
+        const diffConfig = JSON.parse(
+          await Deno.readTextFile(new URL(".acornrc", import.meta.url)),
+        );
+        const diffResult = await minifyCheck(code, output, diffConfig);
+        return `${output.trim()}\n======================================\n${diffResult}`;
+      }
+      return output.trim();
+    }
+    default:
+      throw new Error("Invalid minifier name");
+  }
+}
+
+// Start the server
+console.log("Server running at http://127.0.0.1:8000");
+serve(async (req) => {
+  try {
+    const url = new URL(req.url, `http://${req.headers.get("host")}`);
+    const commandParams = Object.fromEntries(url.searchParams.entries());
+
+    // Example: GET http://127.0.0.1:8000/?codeOrFilePath=myfile.js&version=swc@1.4.6
+    const codeOrFilePath = commandParams.codeOrFilePath;
+    if (!codeOrFilePath) {
+      return new Response("Missing 'codeOrFilePath' parameter", {
+        status: 400,
+      });
+    }
+
+    const result = await processCommand(commandParams, codeOrFilePath);
+    return new Response(result, { status: 200 });
+  } catch (error) {
+    console.error(error);
+    if (error instanceof Error) {
+      return new Response(error.message, { status: 500 });
+    } else {
+      return new Response(error as string, { status: 500 });
+    }
+  }
+});
