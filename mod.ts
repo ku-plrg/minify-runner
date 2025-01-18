@@ -120,13 +120,12 @@ async function processCommand(
 }
 
 // Start the server
-console.log("Server running at http://127.0.0.1:8000");
+console.log("Server running at http://127.0.0.1:8282");
 serve(async (req) => {
   try {
     const url = new URL(req.url, `http://${req.headers.get("host")}`);
     const commandParams = Object.fromEntries(url.searchParams.entries());
 
-    // Example: GET http://127.0.0.1:8000/?codeOrFilePath=myfile.js&version=swc@1.4.6
     const codeOrFilePath = commandParams.codeOrFilePath;
     if (!codeOrFilePath) {
       return new Response("Missing 'codeOrFilePath' parameter", {
@@ -144,4 +143,4 @@ serve(async (req) => {
       return new Response(error as string, { status: 500 });
     }
   }
-});
+}, { port: 8282 });
