@@ -1,23 +1,15 @@
 {
-  "plugins": [
-    "transform-exponentiation-operator",
-    "transform-async-to-generator",
-    "transform-async-generator-functions",
-    "transform-object-rest-spread",
-    "transform-unicode-property-regex",
-    "transform-dotall-regex",
-    "transform-named-capturing-groups-regex",
-    "transform-optional-catch-binding",
-    "transform-json-strings",
-    "transform-export-namespace-from",
-    "transform-nullish-coalescing-operator",
-    "transform-optional-chaining",
-    "transform-logical-assignment-operators",
-    "transform-numeric-separator",
-    "transform-class-properties",
-    "transform-class-static-block",
-    "transform-private-methods",
-    "transform-private-property-in-object",
-    "transform-unicode-sets-regex"
+  "presets": [
+    [
+      "env",
+      {
+        "targets": {
+          "chrome": "49", 
+          "firefox": "45",
+          "safari": "10" 
+        },
+        "modules": false
+      }
+    ]
   ]
 }
