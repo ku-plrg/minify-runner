@@ -1,2 +1,2 @@
 "use strict";
-let number = (x) => x;
+let number = x => x;

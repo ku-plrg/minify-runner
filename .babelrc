@@ -3,12 +3,27 @@
     [
       "env",
       {
-        "targets": {
-          "chrome": "51", 
-          "firefox": "51",
-          "safari": "10" 
-        },
-        "modules": false
+        "exclude": [
+          "transform-arrow-functions",
+          "transform-block-scoping",
+          "transform-classes",
+          "transform-computed-properties",
+          "transform-duplicate-keys",
+          "transform-destructuring",
+          "transform-for-of",
+          "transform-function-name",
+          "transform-literals",
+          "transform-new-target",
+          "transform-object-super",
+          "transform-parameters",
+          "transform-shorthand-properties",
+          "transform-spread",
+          "transform-sticky-regex",
+          "transform-template-literals",
+          "transform-typeof-symbol",
+          "transform-unicode-regex",
+          "transform-unicode-regex"
+        ]
       }
     ]
   ]
