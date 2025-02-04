@@ -4,8 +4,8 @@
       "env",
       {
         "targets": {
-          "chrome": "49", 
-          "firefox": "45",
+          "chrome": "51", 
+          "firefox": "51",
           "safari": "10" 
         },
         "modules": false

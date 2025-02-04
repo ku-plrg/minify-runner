@@ -41,13 +41,9 @@ await new Command()
     default: "swc@1.4.6",
   })
   .option("-f, --file", "Code is given by filename instead of string")
-  .option(
-    "-d, --diff",
-    "Show difference between original and minified code",
-    {
-      default: false,
-    },
-  )
+  .option("-d, --diff", "Show difference between original and minified code", {
+    default: false,
+  })
   .option(
     // note that target is temporarily implemented only for swc
     "-t, --target <target:string>",
@@ -84,11 +80,9 @@ await new Command()
               config.jsc.target = target;
             } else {
               throw new Error(
-                `Invalid target value. Valid values are ${
-                  validJscTargetSwc.join(
-                    ", ",
-                  )
-                }`,
+                `Invalid target value. Valid values are ${validJscTargetSwc.join(
+                  ", ",
+                )}`,
               );
             }
           }
@@ -105,9 +99,7 @@ await new Command()
           console.log(output.trim());
           if (diff) {
             const config = JSON.parse(
-              await Deno.readTextFile(
-                new URL(".acornrc", import.meta.url),
-              ),
+              await Deno.readTextFile(new URL(".acornrc", import.meta.url)),
             );
             console.log("======================================");
             console.log(await minifyCheck(code, output, config));
@@ -127,9 +119,7 @@ await new Command()
           console.log(output.trim());
           if (diff) {
             const config = JSON.parse(
-              await Deno.readTextFile(
-                new URL(".acornrc", import.meta.url),
-              ),
+              await Deno.readTextFile(new URL(".acornrc", import.meta.url)),
             );
             console.log("======================================");
             console.log(await minifyCheck(code, output, config));
@@ -149,9 +139,7 @@ await new Command()
           console.log(output.trim());
           if (diff) {
             const config = JSON.parse(
-              await Deno.readTextFile(
-                new URL(".acornrc", import.meta.url),
-              ),
+              await Deno.readTextFile(new URL(".acornrc", import.meta.url)),
             );
             console.log("======================================");
             console.log(await minifyCheck(code, output, config));
@@ -164,4 +152,47 @@ await new Command()
     },
   )
   .command("find-triggered-options", findTriggeredOptionsCommand)
+  .command(
+    "test-es2015",
+    new Command()
+      .description("Test ES2015+ features by transpiling them to ES2015")
+      .action(async () => {
+        const dirPath = "./test-es2015";
+        let successcase = 0;
+        let failcase = 0;
+        for await (const entry of Deno.readDir(dirPath)) {
+          if (entry.isFile && entry.name.endsWith(".js")) {
+            const filePath = `${dirPath}/${entry.name}`;
+            const originalCode = await Deno.readTextFile(filePath);
+            const babel = await loadBabel("7.19.1");
+            const config = JSON.parse(
+              await Deno.readTextFile(new URL(".babelrc", import.meta.url)),
+            );
+            const transpiledCode = await transformBabel({
+              code: originalCode,
+              config,
+              babel,
+            });
+            if (
+              originalCode.replace(/\s+/g, "") !==
+              transpiledCode.replace(/\s+/g, "")
+            ) {
+              console.log(`Differences found in ${entry.name}:`);
+              console.log("Original Code:");
+              console.log(originalCode);
+              console.log("Transpiled Code:");
+              console.log(transpiledCode);
+              failcase++;
+            } else {
+              console.log(`No differences found in ${entry.name}.`);
+              successcase++;
+            }
+          }
+        }
+        // result phase
+        console.log("Test finished.");
+        console.log("Success cases:", successcase);
+        console.log("Fail cases:", failcase);
+      }),
+  )
   .parse(Deno.args);
