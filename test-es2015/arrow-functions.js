@@ -1,3 +1,4 @@
+"use strict";
 var a = () => {};
 var a = (b) => b;
 
