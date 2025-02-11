@@ -119,8 +119,13 @@ async function processCommand(
   }
 }
 
+// Get the port from command line arguments
+const DEFAULT_PORT = 8282;
+const portArg = Deno.args.find((arg) => arg.startsWith("--port="));
+const port = portArg ? parseInt(portArg.split("=")[1], 10) : DEFAULT_PORT;
+
 // Start the server
-console.log("Server running at http://127.0.0.1:8282");
+console.log("Server running at http://127.0.0.1:" + port + "/");
 serve(async (req) => {
   try {
     const url = new URL(req.url, `http://${req.headers.get("host")}`);
@@ -143,4 +148,4 @@ serve(async (req) => {
       return new Response(error as string, { status: 500 });
     }
   }
-}, { port: 8282 });
+}, { port });
