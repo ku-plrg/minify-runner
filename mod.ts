@@ -80,9 +80,11 @@ await new Command()
               config.jsc.target = target;
             } else {
               throw new Error(
-                `Invalid target value. Valid values are ${validJscTargetSwc.join(
-                  ", ",
-                )}`,
+                `Invalid target value. Valid values are ${
+                  validJscTargetSwc.join(
+                    ", ",
+                  )
+                }`,
               );
             }
           }
@@ -175,7 +177,7 @@ await new Command()
             });
             if (
               originalCode.replace(/\s+/g, "") !==
-              transpiledCode.replace(/\s+/g, "")
+                transpiledCode.replace(/\s+/g, "")
             ) {
               console.log(`Differences found in ${entry.name}:`);
               console.log("Original Code:");
@@ -193,6 +195,106 @@ await new Command()
         console.log("Test finished.");
         console.log("Success cases:", successcase);
         console.log("Fail cases:", failcase);
+      }),
+  )
+  .command(
+    "get-transpilable-rate",
+    new Command()
+      .description("Get transpilable rate of ES2015+ features to ES2015")
+      .option(
+        "-v, --version <name@semver:string>",
+        "minifier name with semver",
+        {
+          default: "babel@7.19.1",
+        },
+      )
+      .arguments("<dirPath:string>")
+      .action(async (
+        { version }: { version: string },
+        dirPath: string,
+      ) => {
+        const [name, semver] = version.split("@");
+
+        let successcase = 0;
+        let failcase = 0;
+
+        const checkTranspilable = async (
+          originalCode: string,
+          name: string,
+        ) => {
+          const configAcorn = JSON.parse(
+            await Deno.readTextFile(new URL(".acornrc", import.meta.url)),
+          );
+          switch (name) {
+            case "swc":
+              const swc = await loadSwc(semver);
+              const configSwc: Config = JSON.parse(
+                await Deno.readTextFile(new URL(".swcrc", import.meta.url)),
+              ) as Config;
+              const { code: outputSwc } = transformSwc({
+                code: originalCode,
+                config: configSwc,
+                filename: "tmp.js",
+                swc,
+              });
+              console.log(outputSwc.trim());
+              if (await minifyCheck(originalCode, outputSwc, configAcorn)) {
+                return true;
+              } else {
+                return false;
+              }
+              break;
+            case "terser":
+              const terser = await loadTerser(semver);
+              const configTerser = JSON.parse(
+                await Deno.readTextFile(new URL(".terserrc", import.meta.url)),
+              );
+              const outputTerser = await transformTerser({
+                code: originalCode,
+                config: configTerser,
+                terser,
+              });
+
+              if (await minifyCheck(originalCode, outputTerser, configAcorn)) {
+                return true;
+              } else {
+                return false;
+              }
+              break;
+            case "babel":
+              const babel = await loadBabel(semver);
+              const configBabel = JSON.parse(
+                await Deno.readTextFile(new URL(".babelrc", import.meta.url)),
+              );
+              const outputBabel = await transformBabel({
+                code: originalCode,
+                config: configBabel,
+                babel,
+              });
+              if (await minifyCheck(originalCode, outputBabel, configAcorn)) {
+                return true;
+              } else {
+                return false;
+              }
+              break;
+
+            default:
+              throw "invalid minifier name";
+          }
+        };
+
+        for await (const entry of Deno.readDir(dirPath)) {
+          if (entry.isFile && entry.name.endsWith(".js")) {
+            const filePath = `${dirPath}/${entry.name}`;
+            const originalCode = '"use strict;"\n' +
+              await Deno.readTextFile(filePath);
+            if (await checkTranspilable(originalCode, name)) {
+              successcase++;
+            } else {
+              failcase++;
+            }
+          }
+        }
       }),
   )
   .parse(Deno.args);
