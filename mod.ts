@@ -228,55 +228,70 @@ await new Command()
           switch (name) {
             case "swc":
               const swc = await loadSwc(semver);
-              const configSwc: Config = JSON.parse(
+              let configSwc: Config = JSON.parse(
                 await Deno.readTextFile(new URL(".swcrc", import.meta.url)),
               ) as Config;
-              const { code: outputSwc } = transformSwc({
-                code: originalCode,
-                config: configSwc,
-                filename: "tmp.js",
-                swc,
-              });
-              console.log(outputSwc.trim());
-              if (await minifyCheck(originalCode, outputSwc, configAcorn)) {
-                return true;
-              } else {
+              // set default target to es2015 and don't compress
+              configSwc.jsc ??= {};
+              configSwc.jsc.target = "es2015";
+              configSwc.jsc ??= {};
+              configSwc.jsc.minify = {};
+              try {
+                const { code: outputSwc } = transformSwc({
+                  code: originalCode,
+                  config: configSwc,
+                  filename: "tmp.js",
+                  swc,
+                });
+                if (await minifyCheck(originalCode, outputSwc, configAcorn)) {
+                  return true;
+                } else {
+                  return false;
+                }
+              } catch {
                 return false;
               }
-              break;
             case "terser":
               const terser = await loadTerser(semver);
               const configTerser = JSON.parse(
                 await Deno.readTextFile(new URL(".terserrc", import.meta.url)),
               );
-              const outputTerser = await transformTerser({
-                code: originalCode,
-                config: configTerser,
-                terser,
-              });
+              try {
+                const outputTerser = await transformTerser({
+                  code: originalCode,
+                  config: configTerser,
+                  terser,
+                });
 
-              if (await minifyCheck(originalCode, outputTerser, configAcorn)) {
-                return true;
-              } else {
+                if (
+                  await minifyCheck(originalCode, outputTerser, configAcorn)
+                ) {
+                  return true;
+                } else {
+                  return false;
+                }
+              } catch {
                 return false;
               }
-              break;
             case "babel":
               const babel = await loadBabel(semver);
               const configBabel = JSON.parse(
                 await Deno.readTextFile(new URL(".babelrc", import.meta.url)),
               );
-              const outputBabel = await transformBabel({
-                code: originalCode,
-                config: configBabel,
-                babel,
-              });
-              if (await minifyCheck(originalCode, outputBabel, configAcorn)) {
-                return true;
-              } else {
+              try {
+                const outputBabel = await transformBabel({
+                  code: originalCode,
+                  config: configBabel,
+                  babel,
+                });
+                if (await minifyCheck(originalCode, outputBabel, configAcorn)) {
+                  return true;
+                } else {
+                  return false;
+                }
+              } catch {
                 return false;
               }
-              break;
 
             default:
               throw "invalid minifier name";
