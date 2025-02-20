@@ -309,7 +309,18 @@ await new Command()
               failcase++;
             }
           }
+
+          if ((successcase + failcase) % 100 == 0) {
+            console.log(`current: ${successcase + failcase}`);
+            console.log(`success: ${successcase}`);
+            console.log(`rate: ${successcase / (successcase + failcase)}`);
+          }
         }
+
+        console.log(`finished`);
+        console.log(`current: ${successcase + failcase}`);
+        console.log(`success: ${successcase}`);
+        console.log(`rate: ${successcase / (successcase + failcase)}`);
       }),
   )
   .parse(Deno.args);
