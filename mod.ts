@@ -301,8 +301,7 @@ await new Command()
         for await (const entry of Deno.readDir(dirPath)) {
           if (entry.isFile && entry.name.endsWith(".js")) {
             const filePath = `${dirPath}/${entry.name}`;
-            const originalCode = '"use strict;"\n' +
-              await Deno.readTextFile(filePath);
+            const originalCode = await Deno.readTextFile(filePath);
             if (await checkTranspilable(originalCode, name)) {
               successcase++;
             } else {
@@ -310,7 +309,7 @@ await new Command()
             }
           }
 
-          if ((successcase + failcase) % 100 == 0) {
+          if ((successcase + failcase) % 2000 == 0) {
             console.log(`current: ${successcase + failcase}`);
             console.log(`success: ${successcase}`);
             console.log(`rate: ${successcase / (successcase + failcase)}`);
