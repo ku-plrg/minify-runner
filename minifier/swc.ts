@@ -30,8 +30,15 @@ export function getPackageName(version: string) {
     : "@swc/wasm-web";
 }
 
+const moduleCache = new Map<string, SwcModule>();
+
 export async function load(version: string): Promise<SwcModule> {
-  return getCachedModule(version);
+  if (moduleCache.has(version)) {
+    return moduleCache.get(version)!;
+  }
+  const module = await getCachedModule(version);
+  moduleCache.set(version, module);
+  return module;
 }
 
 export function transform({ code, config, filename, swc }: {
